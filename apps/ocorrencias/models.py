@@ -69,6 +69,10 @@ class Denuncia(models.Model):
         if (self.latitude is None or self.longitude is None) and not self.endereco:
             raise ValidationError('Informe a localização (coordenadas ou endereço).')
 
+    def save(self, *args, **kwargs):
+        self.full_clean()  # chama validações
+        super().save(*args, **kwargs)
+
     data_hora = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aberto')
 
