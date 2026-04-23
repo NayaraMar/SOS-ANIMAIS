@@ -1,18 +1,11 @@
 from django.db import models
 import uuid
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 
 class Orgao(models.Model):
     nome = models.CharField(max_length=100)
-
-
-class Usuario(models.Model):
-    nome = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    senha = models.CharField(max_length=255)
-    orgao = models.ForeignKey(Orgao, on_delete=models.CASCADE)
-
 
 class Denuncia(models.Model):
     STATUS_CHOICES = [
@@ -51,8 +44,13 @@ class Denuncia(models.Model):
     ]
 
     #se o administrador for deletado, a denúncia continua salva
-    administrador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    administrador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+        
     #campo para "eternizar" o nome de quem atendeu
     nome_admin_registro = models.CharField(max_length=100, blank=True)
 
