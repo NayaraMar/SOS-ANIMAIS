@@ -10,18 +10,22 @@ class Orgao(models.Model):
 
 
 class UsuarioManager(BaseUserManager):
-    def create_user(self, email, nome, password=None):
-        if not email:
-            raise ValueError("O usuário deve ter um email")
 
-        email = self.normalize_email(email)
-        user = self.model(email=email, nome=nome)
+    def create_user(self, cpf, nome, password=None):
+        if not cpf:
+            raise ValueError("O usuário deve ter CPF")
+
+        user = self.model(
+            cpf=cpf,
+            nome=nome
+        )
+
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, nome, password):
-        user = self.create_user(email, nome, password)
+    def create_superuser(self, cpf, nome, password):
+        user = self.create_user(cpf, nome, password)
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
@@ -30,16 +34,26 @@ class UsuarioManager(BaseUserManager):
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nome = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    orgao = models.ForeignKey(Orgao, on_delete=models.CASCADE, null=True, blank=True)
+
+    cpf = models.CharField(
+        max_length=14,
+        unique=True
+    )
+
+    orgao = models.ForeignKey(
+        Orgao,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
-    objects = UsuarioManager()
+    objects = UsuarioManager()  
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'cpf'
     REQUIRED_FIELDS = ['nome']
 
     def __str__(self):
-        return self.email
+        return self.nome

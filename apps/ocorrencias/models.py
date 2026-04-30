@@ -4,9 +4,6 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 
 
-class Orgao(models.Model):
-    nome = models.CharField(max_length=100)
-
 class Denuncia(models.Model):
     STATUS_CHOICES = [
         ('aberto', 'Aberto'),
@@ -24,7 +21,7 @@ class Denuncia(models.Model):
         ('suino', 'Suíno (ex: porco)'),
         ('caprino', 'Caprino (ex: cabra, bode)'),
         ('reptil', 'Réptil (ex: cobra, lagarto)'),
-        ('anfibio', 'Anfíbio (ex: sapo, cobra)'),
+        ('anfibio', 'Anfíbio (ex: sapo)'),
         ('silvestre', 'Animal silvestre (ex: macaco, raposa)'),
         ('marinho', 'Animal marinho (ex: peixe, tartaruga)'),
     ]
@@ -43,38 +40,98 @@ class Denuncia(models.Model):
         ('violencia', 'Violência física'),
     ]
 
-    #se o administrador for deletado, a denúncia continua salva
     administrador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
-        
-    #campo para "eternizar" o nome de quem atendeu
-    nome_admin_registro = models.CharField(max_length=100, blank=True)
 
-    protocolo = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    tipo_animal = models.CharField(max_length=20, choices=TIPO_ANIMAL_CHOICES)
-    tipo_risco = models.CharField(max_length=20, choices=TIPO_RISCO_CHOICES)
+    nome_admin_registro = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    protocolo = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True
+    )
+
+    tipo_animal = models.CharField(
+        max_length=20,
+        choices=TIPO_ANIMAL_CHOICES
+    )
+
+    tipo_risco = models.CharField(
+        max_length=20,
+        choices=TIPO_RISCO_CHOICES
+    )
+
     descricao = models.TextField()
-    
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    endereco = models.CharField(max_length=255, blank=True, null=True)
-    
+
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+
+    endereco = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    data_hora = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='aberto'
+    )
+
     def clean(self):
-        if (self.latitude is None or self.longitude is None) and not self.endereco:
-            raise ValidationError('Informe a localização (coordenadas ou endereço).')
+        coordenadas_ok = (
+            self.latitude is not None and
+            self.longitude is not None
+        )
+
+        endereco_ok = bool(self.endereco)
+
+        if not coordenadas_ok and not endereco_ok:
+            raise ValidationError(
+                'Informe localização por coordenadas ou endereço.'
+            )
 
     def save(self, *args, **kwargs):
-        self.full_clean()  # chama validações
+        if self.administrador and not self.nome_admin_registro:
+            self.nome_admin_registro = self.administrador.nome
+
+        self.full_clean()
         super().save(*args, **kwargs)
 
-    data_hora = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aberto')
+    def __str__(self):
+        return f"{self.protocolo} - {self.tipo_animal}"
 
 
 class Evidencia(models.Model):
-    denuncia = models.ForeignKey(Denuncia, on_delete=models.CASCADE, related_name='evidencias')
+    denuncia = models.ForeignKey(
+        Denuncia,
+        on_delete=models.CASCADE,
+        related_name='evidencias'
+    )
+
     url_imagem = models.URLField()
+
+    def __str__(self):
+        return f"Evidência {self.id} - {self.denuncia.protocolo}"

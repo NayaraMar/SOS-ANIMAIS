@@ -1,43 +1,60 @@
 from django.http import JsonResponse
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
-import json
-from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+import json
+
 
 @csrf_exempt
 def login_view(request):
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse(
+            {'error': 'Método não permitido'},
+            status=405
+        )
+
+    try:
         data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {'error': 'JSON inválido'},
+            status=400
+        )
 
-        email = data.get('email')
-        senha = data.get('senha')
+    cpf = data.get('cpf')
+    senha = data.get('senha')
 
-        user = authenticate(request, username=email, password=senha)
+    if not cpf or not senha:
+        return JsonResponse(
+            {'error': 'CPF e senha são obrigatórios'},
+            status=400
+        )
 
-        if user is not None:
-            login(request, user)
-            return JsonResponse({'message': 'Login realizado com sucesso'})
-        else:
-            return JsonResponse({'error': 'Credenciais inválidas'}, status=400)
+    # remove máscara (garante consistência)
+    cpf = ''.join(filter(str.isdigit, cpf))
 
-    return JsonResponse({'error': 'Método não permitido'}, status=405)
+    user = authenticate(
+        request,
+        username=cpf,   # ✅ corrigido
+        password=senha
+    )
 
-def logout_view(request):
-    logout(request)
-    return JsonResponse({'message': 'Logout realizado com sucesso'})
+    if user is not None:
+        login(request, user)
 
-def me_view(request):
-    if request.user.is_authenticated:
         return JsonResponse({
-            'email': request.user.email,
-            'nome': request.user.nome
+            'success': True,
+            'message': 'Login realizado com sucesso',
+            'usuario': {
+                'nome': user.nome,
+                'cpf': user.cpf
+            }
         })
-    else:
-        return JsonResponse({'error': 'Não autenticado'}, status=401)
-    
-from django.contrib.auth.decorators import login_required
 
-@login_required
-def rota_protegida(request):
-    return JsonResponse({'message': 'Você está autenticado'})
+    return JsonResponse(
+        {
+            'success': False,
+            'error': 'CPF ou senha incorretos'  
+        },
+        status=401
+    )

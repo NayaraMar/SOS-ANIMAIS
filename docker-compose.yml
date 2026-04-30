@@ -1,19 +1,32 @@
 version: '3.9'
 
 services:
+
   web:
     build: .
-    container_name: sos_animais
+    container_name: sos_animais_backend
     command: >
-        sh -c "sleep 5 &&
-        python manage.py migrate &&
-        python manage.py runserver 0.0.0.0:8000"
+      sh -c "sleep 5 &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     depends_on:
-    - db
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: sos_animais_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+    depends_on:
+      - web
 
   db:
     image: postgres:15
