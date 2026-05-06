@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';;
+import ReCAPTCHA from 'react-google-recaptcha';
 import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
 import imgAnimais from '../assets/imgAnimais.png';
@@ -7,8 +8,9 @@ const Login = (props) => {
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [mensagem, setMensagem] = useState('');
-  const [carregando, setCarregando] = useState(false);
-
+  const [carregando, setCarregando] = useState(false); 
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const recaptchaRef = useRef(null);
   // 🔹 Formatação do CPF
   const formatarCpf = (evento) => {
     let valor = evento.target.value;
@@ -68,7 +70,10 @@ const Login = (props) => {
       setMensagem('Senha deve ter no mínimo 6 caracteres');
       return;
     }
-
+    if (!recaptchaToken) {
+      setMensagem('Por favor, confirme que você não é um robô.');
+      return;
+    }
     setCarregando(true);
 
     try {
@@ -81,6 +86,7 @@ const Login = (props) => {
         body: JSON.stringify({
           cpf: cpfLimpo,
           senha: senha,
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -99,6 +105,11 @@ const Login = (props) => {
       setMensagem('Erro ao conectar com o servidor');
     } finally {
       setCarregando(false);
+      setRecaptchaToken(null);
+      
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset(); // reseta o captcha
+      }
     }
   };
 
@@ -173,6 +184,14 @@ const Login = (props) => {
                   borderRadius: '8px',
                   border: '1px solid #DDD',
                 }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey="6LdkYdssAAAAALtVnjoAx19CqXXM1e33cH16E8su"
+                onChange={(token) => setRecaptchaToken(token)}
               />
             </div>
 

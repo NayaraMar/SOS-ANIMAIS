@@ -3,7 +3,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
-
+import urllib.request
+import urllib.parse
 
 @csrf_exempt
 def login_view(request):
@@ -23,19 +24,43 @@ def login_view(request):
 
     cpf = data.get('cpf')
     senha = data.get('senha')
+    recaptcha_token = data.get('recaptcha_token')
 
     if not cpf or not senha:
         return JsonResponse(
-            {'error': 'CPF e senha são obrigatórios'},
+            {'error': 'CPF e senha são obrigatórios.    '},
             status=400
         )
+
+    # valida recaptcha
+    if not recaptcha_token:
+         return JsonResponse({'error': 'O código de verificação reCAPTCHA é obrigatório.'}, status=400)
+
+    try:
+       
+        secret_key = "6LdkYdssAAAAAC8GW0zTgoyuDNc01hYc-t_aXGt5"
+        verify_data = urllib.parse.urlencode({
+            'secret': secret_key,
+            'response': recaptcha_token
+        }).encode('utf-8')
+        
+        req = urllib.request.Request('https://www.google.com/recaptcha/api/siteverify', data=verify_data)
+        response = urllib.request.urlopen(req)
+        result = json.loads(response.read().decode())
+        print("RECAPTCHA RESULT:", result)
+        
+        if not result.get('success'):
+            return JsonResponse({'error': f"Validação contra robôs falhou. Motivo: {result.get('error-codes', ['desconhecido'])}"}, status=400)
+            
+    except Exception as e:
+        return JsonResponse({'error': 'Erro ao validar recaptcha.'}, status=500)
 
     # remove máscara (garante consistência)
     cpf = ''.join(filter(str.isdigit, cpf))
 
     user = authenticate(
         request,
-        username=cpf,   # ✅ corrigido
+        username=cpf,   
         password=senha
     )
 
