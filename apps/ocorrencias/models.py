@@ -1,10 +1,14 @@
+# apps/ocorrencias/models.py
+
 from django.db import models
-import uuid
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.utils import timezone
+import random
 
 
 class Denuncia(models.Model):
+
     STATUS_CHOICES = [
         ('aberto', 'Aberto'),
         ('em_andamento', 'Em andamento'),
@@ -12,32 +16,32 @@ class Denuncia(models.Model):
     ]
 
     TIPO_ANIMAL_CHOICES = [
-        ('cachorro', 'Cachorro (ex: vira-lata, poodle)'),
-        ('gato', 'Gato (ex: doméstico)'),
-        ('ave', 'Ave (ex: papagaio, galinha)'),
+        ('cachorro', 'Cachorro'),
+        ('gato', 'Gato'),
+        ('ave', 'Ave'),
         ('coelho', 'Coelho'),
         ('cavalo', 'Cavalo'),
-        ('bovino', 'Bovino (ex: boi, vaca)'),
-        ('suino', 'Suíno (ex: porco)'),
-        ('caprino', 'Caprino (ex: cabra, bode)'),
-        ('reptil', 'Réptil (ex: cobra, lagarto)'),
-        ('anfibio', 'Anfíbio (ex: sapo)'),
-        ('silvestre', 'Animal silvestre (ex: macaco, raposa)'),
-        ('marinho', 'Animal marinho (ex: peixe, tartaruga)'),
+        ('bovino', 'Bovino'),
+        ('suino', 'Suíno'),
+        ('caprino', 'Caprino'),
+        ('reptil', 'Réptil'),
+        ('anfibio', 'Anfíbio'),
+        ('silvestre', 'Silvestre'),
+        ('marinho', 'Marinho'),
     ]
 
     TIPO_RISCO_CHOICES = [
         ('maus_tratos', 'Maus-tratos'),
         ('abandono', 'Abandono'),
-        ('ferido', 'Animal ferido'),
+        ('ferido', 'Ferido'),
         ('doente', 'Doente'),
         ('desnutrido', 'Desnutrido'),
         ('em_perigo', 'Em perigo'),
         ('atropelado', 'Atropelado'),
-        ('preso', 'Preso/Aprisionado'),
-        ('envenenamento', 'Suspeita de envenenamento'),
-        ('exploracao', 'Exploração ilegal'),
-        ('violencia', 'Violência física'),
+        ('preso', 'Preso'),
+        ('envenenamento', 'Envenenamento'),
+        ('exploracao', 'Exploração'),
+        ('violencia', 'Violência'),
     ]
 
     administrador = models.ForeignKey(
@@ -52,10 +56,10 @@ class Denuncia(models.Model):
         blank=True
     )
 
-    protocolo = models.UUIDField(
-        default=uuid.uuid4,
-        editable=False,
-        unique=True
+    protocolo = models.CharField(
+        max_length=50,
+        unique=True,
+        editable=False
     )
 
     tipo_animal = models.CharField(
@@ -92,20 +96,16 @@ class Denuncia(models.Model):
 
     email_contato = models.EmailField(
         blank=True,
-        null=True,
-        help_text='Email do denunciante para receber o protocolo'
+        null=True
     )
 
     telefone_contato = models.CharField(
         max_length=20,
         blank=True,
-        null=True,
-        help_text='Telefone/Celular do denunciante para receber o protocolo'
+        null=True
     )
 
-    data_hora = models.DateTimeField(
-        auto_now_add=True
-    )
+    data_hora = models.DateTimeField(auto_now_add=True)
 
     status = models.CharField(
         max_length=20,
@@ -126,7 +126,60 @@ class Denuncia(models.Model):
                 'Informe localização por coordenadas ou endereço.'
             )
 
+    def gerar_protocolo(self):
+        animal_map = {
+            'cachorro': 'CA',
+            'gato': 'GA',
+            'ave': 'AV',
+            'coelho': 'CO',
+            'cavalo': 'CV',
+            'bovino': 'BO',
+            'suino': 'SU',
+            'caprino': 'CP',
+            'reptil': 'RE',
+            'anfibio': 'AN',
+            'silvestre': 'SI',
+            'marinho': 'MA',
+        }
+
+        risco_map = {
+            'maus_tratos': 'MT',
+            'abandono': 'AB',
+            'ferido': 'FE',
+            'doente': 'DO',
+            'desnutrido': 'DE',
+            'em_perigo': 'EP',
+            'atropelado': 'AT',
+            'preso': 'PR',
+            'envenenamento': 'EN',
+            'exploracao': 'EX',
+            'violencia': 'VI',
+        }
+
+        data = timezone.now().strftime('%Y%m%d%H%M%S')
+        aleatorio = random.randint(1000, 9999)
+
+        animal = animal_map.get(self.tipo_animal, 'XX')
+        risco = risco_map.get(self.tipo_risco, 'XX')
+
+        return f'{animal}-{risco}-{data}-{aleatorio}'
+
+    def gerar_protocolo_unico(self):
+        while True:
+            novo = self.gerar_protocolo()
+
+            existe = Denuncia.objects.filter(
+                protocolo=novo
+            ).exists()
+
+            if not existe:
+                return novo
+
     def save(self, *args, **kwargs):
+
+        if not self.protocolo:
+            self.protocolo = self.gerar_protocolo_unico()
+
         if self.administrador and not self.nome_admin_registro:
             self.nome_admin_registro = self.administrador.nome
 
@@ -134,7 +187,7 @@ class Denuncia(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.protocolo} - {self.tipo_animal}"
+        return self.protocolo
 
 
 class Evidencia(models.Model):
@@ -147,4 +200,4 @@ class Evidencia(models.Model):
     url_imagem = models.URLField()
 
     def __str__(self):
-        return f"Evidência {self.id} - {self.denuncia.protocolo}"
+        return f'Evidência {self.id} - {self.denuncia.protocolo}'
