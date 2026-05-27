@@ -96,12 +96,6 @@ class Denuncia(models.Model):
         help_text='Email do denunciante para receber o protocolo'
     )
 
-    telefone_contato = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        help_text='Telefone/Celular do denunciante para receber o protocolo'
-    )
 
     data_hora = models.DateTimeField(
         auto_now_add=True
@@ -123,7 +117,7 @@ class Denuncia(models.Model):
 
         if not coordenadas_ok and not endereco_ok:
             raise ValidationError(
-                'Informe localização por coordenadas ou endereço.'
+                'Informe localização ou endereço.'
             )
 
     def save(self, *args, **kwargs):
