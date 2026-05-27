@@ -19,15 +19,21 @@ def criar_denuncia(request):
         try:
             data = json.loads(request.body)
 
+            lat = data.get('latitude')
+            lng = data.get('longitude')
+            
+            # Converte string vazia para None para passar na validação numérica e do clean
+            if lat == "": lat = None
+            if lng == "": lng = None
+
             denuncia = Denuncia(
                 tipo_animal=data.get('tipo_animal'),
                 tipo_risco=data.get('tipo_risco'),
                 descricao=data.get('descricao'),
-                latitude=data.get('latitude'),
-                longitude=data.get('longitude'),
+                latitude=lat,
+                longitude=lng,
                 endereco=data.get('endereco'),
                 email_contato=data.get('email_contato'),
-                telefone_contato=data.get('telefone_contato'),
             )
 
             denuncia.save()

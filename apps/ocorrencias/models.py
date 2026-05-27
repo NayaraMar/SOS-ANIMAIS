@@ -1,5 +1,3 @@
-# apps/ocorrencias/models.py
-
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -99,12 +97,6 @@ class Denuncia(models.Model):
         null=True
     )
 
-    telefone_contato = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True
-    )
-
     data_hora = models.DateTimeField(auto_now_add=True)
 
     status = models.CharField(
@@ -123,7 +115,7 @@ class Denuncia(models.Model):
 
         if not coordenadas_ok and not endereco_ok:
             raise ValidationError(
-                'Informe localização por coordenadas ou endereço.'
+                'Informe localização ou endereço.'
             )
 
     def gerar_protocolo(self):
