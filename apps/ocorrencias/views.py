@@ -21,10 +21,12 @@ def criar_denuncia(request):
 
             lat = data.get('latitude')
             lng = data.get('longitude')
-            
-            # Converte string vazia para None para passar na validação numérica e do clean
-            if lat == "": lat = None
-            if lng == "": lng = None
+
+            if lat == "":
+                lat = None
+
+            if lng == "":
+                lng = None
 
             denuncia = Denuncia(
                 tipo_animal=data.get('tipo_animal'),
@@ -68,18 +70,73 @@ def criar_denuncia(request):
 
 
 @csrf_exempt
-def atualizar_status_denuncia(request, id):
+def atualizar_status_denuncia(request):
     if request.method in ['PUT', 'PATCH']:
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
 
-        denuncia = get_object_or_404(Denuncia, id=id)
+            protocolo = data.get('protocolo')
 
-        denuncia.status = data.get('status')
-        denuncia.save()
+            denuncia = get_object_or_404(
+                Denuncia,
+                protocolo=protocolo
+            )
 
-        return JsonResponse({
-            'mensagem': 'Status atualizado'
-        })
+            denuncia.status = data.get('status')
+            denuncia.save()
+
+            return JsonResponse({
+                'mensagem': 'Status atualizado com sucesso',
+                'dados': {
+                    'protocolo': denuncia.protocolo,
+                    'status': denuncia.status,
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse(
+                {'erro': str(e)},
+                status=500
+            )
+
+    return JsonResponse(
+        {'erro': 'Método não permitido'},
+        status=405
+    )
+
+
+@csrf_exempt
+def acompanhar_denuncia(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            protocolo = data.get('protocolo')
+
+            denuncia = Denuncia.objects.filter(
+                protocolo=protocolo
+            ).first()
+
+            if not denuncia:
+                return JsonResponse(
+                    {'erro': 'Protocolo não encontrado'},
+                    status=404
+                )
+
+            return JsonResponse({
+                'protocolo': denuncia.protocolo,
+                'tipo_animal': denuncia.tipo_animal,
+                'tipo_risco': denuncia.tipo_risco,
+                'descricao': denuncia.descricao,
+                'status': denuncia.status,
+                'endereco': denuncia.endereco,
+            })
+
+        except Exception as e:
+            return JsonResponse(
+                {'erro': str(e)},
+                status=500
+            )
 
     return JsonResponse(
         {'erro': 'Método não permitido'},

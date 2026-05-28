@@ -73,18 +73,19 @@ class Denuncia(models.Model):
     descricao = models.TextField()
 
     latitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
-        null=True,
-        blank=True
+    max_digits=12,
+    decimal_places=8,
+    null=True,
+    blank=True
     )
 
     longitude = models.DecimalField(
-        max_digits=9,
-        decimal_places=6,
+        max_digits=12,
+        decimal_places=8,
         null=True,
         blank=True
     )
+        
 
     endereco = models.CharField(
         max_length=255,
