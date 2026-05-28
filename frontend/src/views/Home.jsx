@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
 import imgAnimais from '../assets/imgAnimais.png';
+
 const Home = (props) => {
   return (
     <div className="container">
@@ -24,8 +25,12 @@ const Home = (props) => {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <button className="btn-main">EFETUAR DENÚNCIA</button>
-          <button className="btn-main">ACOMPANHAR DENÚNCIA</button>
+          <button className="btn-main" onClick={props.onEfetuarDenuncia}>
+            EFETUAR DENÚNCIA
+          </button>
+          <button className="btn-main" onClick={props.onAcompanharDenuncia}>
+            ACOMPANHAR DENÚNCIA
+          </button>
         </div>
 
         <div className="illustration">

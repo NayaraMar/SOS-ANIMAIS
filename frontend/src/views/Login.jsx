@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';;
+import React, { useState, useRef } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
@@ -11,49 +11,37 @@ const Login = (props) => {
   const [carregando, setCarregando] = useState(false); 
   const [recaptchaToken, setRecaptchaToken] = useState(null);
   const recaptchaRef = useRef(null);
-  // 🔹 Formatação do CPF
+
   const formatarCpf = (evento) => {
     let valor = evento.target.value;
-
     valor = valor.replace(/\D/g, '');
     valor = valor.substring(0, 11);
-
     valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
     valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
     valor = valor.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-
     setCpf(valor);
   };
 
   const validarCpf = (cpf) => {
     if (cpf.length !== 11) return false;
-
     let soma = 0;
     let resto;
-
     for (let i = 1; i <= 9; i++)
       soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
-
     resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
     if (resto !== parseInt(cpf.substring(9, 10))) return false;
-
     soma = 0;
     for (let i = 1; i <= 10; i++)
       soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
-
     resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
-
     return resto === parseInt(cpf.substring(10, 11));
   };
 
-  // 🔹 Login
   const fazerLogin = async (evento) => {
     evento.preventDefault();
-
     setMensagem('');
-
     const cpfLimpo = cpf.replace(/\D/g, '');
 
     if (cpfLimpo.length !== 11) {
@@ -66,14 +54,16 @@ const Login = (props) => {
       return;
     }
 
-    if (!senha || senha.length < 4) {
-      setMensagem('Senha deve ter no mínimo 6 caracteres');
+    if (!senha || senha.length < 6) {
+      setMensagem('Senha deve tener no mínimo 6 caracteres');
       return;
     }
+
     if (!recaptchaToken) {
       setMensagem('Por favor, confirme que você não é um robô.');
       return;
     }
+
     setCarregando(true);
 
     try {
@@ -82,7 +72,6 @@ const Login = (props) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
           cpf: cpfLimpo,
           senha: senha,
@@ -94,7 +83,7 @@ const Login = (props) => {
 
       if (response.ok) {
         setMensagem('Login realizado com sucesso');
-
+        localStorage.setItem('token', data.access);
         setTimeout(() => {
           props.onLoginSucesso();
         }, 1000);
@@ -106,9 +95,8 @@ const Login = (props) => {
     } finally {
       setCarregando(false);
       setRecaptchaToken(null);
-      
       if (recaptchaRef.current) {
-        recaptchaRef.current.reset(); // reseta o captcha
+        recaptchaRef.current.reset();
       }
     }
   };
@@ -153,7 +141,6 @@ const Login = (props) => {
               <label style={{ fontSize: '12px', marginBottom: '5px' }}>
                 CPF
               </label>
-
               <input
                 type="text"
                 value={cpf}
@@ -173,7 +160,6 @@ const Login = (props) => {
               <label style={{ fontSize: '12px', marginBottom: '5px' }}>
                 Senha
               </label>
-
               <input
                 type="password"
                 value={senha}
@@ -199,9 +185,9 @@ const Login = (props) => {
               <div
                 style={{
                   fontSize: '13px',
-                  color: mensagem.includes('sucesso')
-                    ? 'green'
-                    : 'red',
+                  color: mensagem.includes('sucesso') ? 'green' : 'red',
+                  fontWeight: '500',
+                  textAlign: 'center'
                 }}
               >
                 {mensagem}
@@ -220,6 +206,7 @@ const Login = (props) => {
                 marginTop: '10px',
                 cursor: 'pointer',
                 opacity: carregando ? 0.7 : 1,
+                fontWeight: 'bold'
               }}
             >
               {carregando ? 'Entrando...' : 'Entrar'}
@@ -246,7 +233,7 @@ const Login = (props) => {
         }}
       >
         <span>
-          Secretaria Executiva de Proteção Animal | (81)99312-4632
+          Secretaria Executiva de Proteção Animal | (81) 99312-4632
         </span>
 
         <img

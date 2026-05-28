@@ -7,7 +7,6 @@ const CadastroAdmin = (props) => {
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
-  
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
 
@@ -45,10 +44,12 @@ const CadastroAdmin = (props) => {
     setCarregando(true);
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8000/api/admin/registrar/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           nome: nome,
@@ -96,32 +97,26 @@ const CadastroAdmin = (props) => {
           </div>
 
           <form onSubmit={cadastrarNovoAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            
-            {/* Nome Completo */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Nome Completo *</label>
               <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Digite o nome do novo admin" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
             </div>
 
-            {/* CPF */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>CPF *</label>
               <input type="text" value={cpf} onChange={formatarCpf} placeholder="000.000.000-00" maxLength="14" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
             </div>
 
-            {/* Senha */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Senha Inicial *</label>
               <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="No mínimo 6 caracteres" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
             </div>
 
-            {/* Confirmar Senha */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Confirmar Senha *</label>
               <input type="password" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
             </div>
 
-            {/* Mensagens de feedback */}
             {mensagem && (
               <div style={{ fontSize: '13px', padding: '10px', borderRadius: '6px', background: mensagem.includes('sucesso') ? '#e6f4ea' : '#fce8e6', color: mensagem.includes('sucesso') ? 'green' : 'red', fontWeight: '500', textAlign: 'center' }}>
                 {mensagem}
