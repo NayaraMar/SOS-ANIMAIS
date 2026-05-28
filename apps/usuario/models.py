@@ -35,10 +35,7 @@ class UsuarioManager(BaseUserManager):
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nome = models.CharField(max_length=100)
 
-    cpf = models.CharField(
-        max_length=14,
-        unique=True
-    )
+    cpf = models.CharField(max_length=11, unique=True)
 
     orgao = models.ForeignKey(
         Orgao,

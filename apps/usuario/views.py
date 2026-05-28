@@ -55,7 +55,6 @@ def login_view(request):
     except Exception as e:
         return JsonResponse({'error': 'Erro ao validar recaptcha.'}, status=500)
 
-    # remove máscara (garante consistência)
     cpf = ''.join(filter(str.isdigit, cpf))
 
     user = authenticate(
