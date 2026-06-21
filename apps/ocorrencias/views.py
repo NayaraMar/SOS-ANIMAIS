@@ -3,9 +3,21 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
-
 from .models import Denuncia
 from .utils import enviar_email_protocolo
+
+
+def opcoes_denuncia(request):
+    return JsonResponse({
+        'tipos_animal': [
+            {'valor': valor, 'nome': nome}
+            for valor, nome in Denuncia.TIPO_ANIMAL_CHOICES
+        ],
+        'tipos_risco': [
+            {'valor': valor, 'nome': nome}
+            for valor, nome in Denuncia.TIPO_RISCO_CHOICES
+        ]
+    })
 
 
 def lista_denuncias(request):
@@ -71,38 +83,52 @@ def criar_denuncia(request):
 
 @csrf_exempt
 def atualizar_status_denuncia(request):
-    if request.method in ['PUT', 'PATCH']:
-        try:
-            data = json.loads(request.body)
+    if request.method not in ['PUT', 'PATCH']:
+        return JsonResponse(
+            {'erro': 'Método não permitido'},
+            status=405
+        )
 
-            protocolo = data.get('protocolo')
+    try:
+        data = json.loads(request.body)
 
-            denuncia = get_object_or_404(
-                Denuncia,
-                protocolo=protocolo
-            )
+        protocolo = data.get('protocolo')
+        novo_status = data.get('status')
 
-            denuncia.status = data.get('status')
-            denuncia.save()
-
-            return JsonResponse({
-                'mensagem': 'Status atualizado com sucesso',
-                'dados': {
-                    'protocolo': denuncia.protocolo,
-                    'status': denuncia.status,
-                }
-            })
-
-        except Exception as e:
+        if not protocolo:
             return JsonResponse(
-                {'erro': str(e)},
-                status=500
+                {'erro': 'Protocolo é obrigatório'},
+                status=400
             )
 
-    return JsonResponse(
-        {'erro': 'Método não permitido'},
-        status=405
-    )
+        if not novo_status:
+            return JsonResponse(
+                {'erro': 'Status é obrigatório'},
+                status=400
+            )
+
+        denuncia = get_object_or_404(
+            Denuncia,
+            protocolo=protocolo
+        )
+
+        denuncia.status = novo_status
+        denuncia.save()
+
+        return JsonResponse({
+            'success': True,
+            'mensagem': 'Status atualizado com sucesso',
+            'dados': {
+                'protocolo': denuncia.protocolo,
+                'status': denuncia.status,
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse(
+            {'erro': str(e)},
+            status=500
+        )
 
 
 @csrf_exempt

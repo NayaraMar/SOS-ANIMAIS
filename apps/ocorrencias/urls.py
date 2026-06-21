@@ -6,4 +6,5 @@ urlpatterns = [
     path('denuncias/criar/', views.criar_denuncia),
     path('denuncias/acompanhar/', views.acompanhar_denuncia),
     path('denuncias/status/', views.atualizar_status_denuncia),
+    path('denuncias/opcoes/', views.opcoes_denuncia),
 ]

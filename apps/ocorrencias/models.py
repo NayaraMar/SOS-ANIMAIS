@@ -190,7 +190,11 @@ class Evidencia(models.Model):
         related_name='evidencias'
     )
 
-    url_imagem = models.URLField()
+    imagem = models.ImageField(
+        upload_to='evidencias/',
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f'Evidência {self.id} - {self.denuncia.protocolo}'

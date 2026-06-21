@@ -5,8 +5,10 @@ import logoOlinda from '../assets/logoOlinda.png';
 const CadastroAdmin = (props) => {
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [tipoUsuario, setTipoUsuario] = useState('comum');
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
 
@@ -45,94 +47,238 @@ const CadastroAdmin = (props) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/registrar/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          nome: nome,
-          cpf: cpfLimpo,
-          senha: senha,
-        }),
-      });
+
+      const response = await fetch(
+        'http://localhost:8000/api/usuarios/criar/',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nome,
+            cpf: cpfLimpo,
+            email,
+            senha,
+            is_superuser: tipoUsuario === 'superuser'
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
-        setMensagem('Novo administrador cadastrado com sucesso!');
+        setMensagem('Usuário cadastrado com sucesso!');
         setNome('');
         setCpf('');
+        setEmail('');
         setSenha('');
         setConfirmarSenha('');
+        setTipoUsuario('comum');
       } else {
-        setMensagem(data.error || 'Erro ao realizar o cadastro.');
+        setMensagem(data.error || 'Erro ao cadastrar');
       }
     } catch (error) {
-      setMensagem('Erro ao conectar com o servidor do backend.');
+      setMensagem('Erro ao conectar com backend');
     } finally {
       setCarregando(false);
     }
   };
 
+  const estiloInput = {
+    width: '100%',
+    padding: '14px',
+    borderRadius: '10px',
+    border: '1px solid #d9d9d9',
+    fontSize: '15px',
+    boxSizing: 'border-box',
+    outline: 'none'
+  };
+
   return (
-    <div className="container">
-      <header className="header" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="logo-group">
-          <img src={logoSos} alt="SOS Animais" width="120" />
-        </div>
-        <button className="btn-outline" onClick={props.onVoltar}>
+    <div
+      className="container"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#f5f7fa'
+      }}
+    >
+      <header
+        className="header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '15px',
+          padding: '20px'
+        }}
+      >
+        <img src={logoSos} alt="SOS Animais" width="120" />
+
+        <button
+          onClick={props.onVoltar}
+          style={{
+            padding: '12px 20px',
+            borderRadius: '10px',
+            border: 'none',
+            background: '#333',
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >
           Voltar para o Painel
         </button>
       </header>
 
-      <main style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 0', flex: 1 }}>
-        <div className="login-box" style={{ width: '400px', background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0px 4px 10px rgba(0,0,0,0.05)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: '0 0 5px 0' }}>Cadastrar Administrador</h2>
-            <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-              Registre um novo usuário com privilégios de triagem.
-            </p>
-          </div>
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px'
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '500px',
+            background: '#fff',
+            padding: 'clamp(20px, 4vw, 35px)',
+            borderRadius: '20px',
+            boxShadow: '0 12px 35px rgba(0,0,0,0.08)'
+          }}
+        >
+          <h2
+            style={{
+              marginBottom: '25px',
+              textAlign: 'center',
+              color: '#222'
+            }}
+          >
+            Cadastrar Usuário
+          </h2>
 
-          <form onSubmit={cadastrarNovoAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Nome Completo *</label>
-              <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Digite o nome do novo admin" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
-            </div>
+          <form
+            onSubmit={cadastrarNovoAdmin}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome"
+              required
+              style={estiloInput}
+            />
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>CPF *</label>
-              <input type="text" value={cpf} onChange={formatarCpf} placeholder="000.000.000-00" maxLength="14" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
-            </div>
+            <input
+              type="text"
+              value={cpf}
+              onChange={formatarCpf}
+              placeholder="CPF"
+              maxLength="14"
+              required
+              style={estiloInput}
+            />
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Senha Inicial *</label>
-              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="No mínimo 6 caracteres" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
-            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="E-mail"
+              required
+              style={estiloInput}
+            />
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>Confirmar Senha *</label>
-              <input type="password" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" required style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }} />
-            </div>
+            <select
+              value={tipoUsuario}
+              onChange={(e) => setTipoUsuario(e.target.value)}
+              style={estiloInput}
+            >
+              <option value="comum">Usuário Comum</option>
+              <option value="superuser">Super Usuário</option>
+            </select>
+
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="Senha"
+              required
+              style={estiloInput}
+            />
+
+            <input
+              type="password"
+              value={confirmarSenha}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+              placeholder="Confirmar senha"
+              required
+              style={estiloInput}
+            />
 
             {mensagem && (
-              <div style={{ fontSize: '13px', padding: '10px', borderRadius: '6px', background: mensagem.includes('sucesso') ? '#e6f4ea' : '#fce8e6', color: mensagem.includes('sucesso') ? 'green' : 'red', fontWeight: '500', textAlign: 'center' }}>
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: mensagem.includes('sucesso')
+                    ? '#e8f8ee'
+                    : '#ffeaea',
+                  color: mensagem.includes('sucesso')
+                    ? '#0f7b34'
+                    : '#b42318',
+                  fontSize: '14px'
+                }}
+              >
                 {mensagem}
               </div>
             )}
 
-            <button type="submit" disabled={carregando} style={{ background: '#333', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', opacity: carregando ? 0.7 : 1, marginTop: '5px' }}>
-              {carregando ? 'Cadastrando...' : 'CONCLUIR CADASTRO'}
+            <button
+              type="submit"
+              disabled={carregando}
+              style={{
+                width: '100%',
+                padding: '15px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#28a745',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              {carregando ? 'Cadastrando...' : 'Cadastrar'}
             </button>
           </form>
         </div>
       </main>
 
-      <footer className="footer" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', paddingBottom: '10px' }}>
-        <span>Secretaria Executiva de Proteção Animal | (81) 99312-4632</span>
-        <img src={logoOlinda} alt="Olinda" width="90" style={{ position: 'absolute', right: '0', bottom: '-10px' }} />
+      <footer
+        className="footer"
+        style={{
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '15px',
+          flexWrap: 'wrap',
+          textAlign: 'center'
+        }}
+      >
+        <span>Secretaria Executiva de Proteção Animal</span>
+        <img src={logoOlinda} alt="Olinda" width="70" />
       </footer>
     </div>
   );

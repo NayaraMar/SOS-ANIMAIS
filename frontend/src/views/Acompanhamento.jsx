@@ -10,23 +10,41 @@ const Acompanhamento = (props) => {
 
   const buscarProtocolo = async (evento) => {
     evento.preventDefault();
+
     setMensagem('');
     setDenuncia(null);
     setCarregando(true);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/denuncias/${protocolo}/`, {
-        method: 'GET',
-      });
+      const response = await fetch(
+        'http://localhost:8000/api/denuncias/acompanhar/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            protocolo: protocolo,
+          }),
+        }
+      );
+
       const data = await response.json();
 
       if (response.ok) {
         setDenuncia(data);
       } else {
-        setMensagem(data.error || 'Protocolo não encontrado. Verifique o código e tente novamente.');
+        setMensagem(
+          data.erro ||
+          'Protocolo não encontrado.'
+        );
       }
+
     } catch (error) {
-      setMensagem('Erro ao conectar com o servidor do backend.');
+      console.error(error);
+      setMensagem(
+        'Erro ao conectar com o servidor do backend.'
+      );
     } finally {
       setCarregando(false);
     }
@@ -100,10 +118,10 @@ const Acompanhamento = (props) => {
             </div>
 
             <div style={{ fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <p style={{ margin: 0 }}><strong>Animal:</strong> {denuncia.tipo_animal}</p>
-              <p style={{ margin: 0 }}><strong>Ocorrência:</strong> {denuncia.tipo_ocorrencia}</p>
-              <p style={{ margin: 0 }}><strong>Localização:</strong> {denuncia.localizacao}</p>
-              <p style={{ margin: 0 }}><strong>Descrição:</strong> {denuncia.descricao}</p>
+              <p><strong>Animal:</strong> {denuncia.tipo_animal}</p>
+              <p><strong>Risco:</strong> {denuncia.tipo_risco}</p>
+              <p><strong>Localização:</strong> {denuncia.endereco}</p>
+              <p><strong>Descrição:</strong> {denuncia.descricao}</p>
               {denuncia.prioridade && (
                 <p style={{ margin: 0 }}><strong>Prioridade de Atendimento:</strong> {denuncia.prioridade}</p>
               )}
