@@ -72,20 +72,15 @@ class Denuncia(models.Model):
 
     descricao = models.TextField()
 
-    latitude = models.DecimalField(
-    max_digits=12,
-    decimal_places=8,
-    null=True,
-    blank=True
-    )
-
-    longitude = models.DecimalField(
-        max_digits=12,
-        decimal_places=8,
+    latitude = models.FloatField(
         null=True,
         blank=True
     )
-        
+
+    longitude = models.FloatField(
+        null=True,
+        blank=True
+    )
 
     endereco = models.CharField(
         max_length=255,
@@ -176,7 +171,19 @@ class Denuncia(models.Model):
         if self.administrador and not self.nome_admin_registro:
             self.nome_admin_registro = self.administrador.nome
 
-        self.full_clean()
+        if self.latitude is not None:
+            self.latitude = round(float(self.latitude), 8)
+
+        if self.longitude is not None:
+            self.longitude = round(float(self.longitude), 8)
+
+        try:
+            self.full_clean()
+            print("FULL CLEAN PASSOU")
+        except ValidationError as e:
+            print("ERRO NO FULL_CLEAN:", e.message_dict)
+            raise
+
         super().save(*args, **kwargs)
 
     def __str__(self):

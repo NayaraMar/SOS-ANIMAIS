@@ -3,8 +3,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
-from .models import Denuncia
+from .models import Denuncia, Evidencia
 from .utils import enviar_email_protocolo
+from decimal import Decimal, ROUND_DOWN
 
 
 def opcoes_denuncia(request):
@@ -27,58 +28,74 @@ def lista_denuncias(request):
 
 @csrf_exempt
 def criar_denuncia(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        return JsonResponse(
+            {'erro': 'Método não permitido'},
+            status=405
+        )
 
-            lat = data.get('latitude')
-            lng = data.get('longitude')
+    try:
+        # AGORA VEM DE FORMDATA
+        data = request.POST
+        imagem = request.FILES.get('imagem')
 
-            if lat == "":
-                lat = None
+        print("POST:", data)
+        print("FILES:", request.FILES)
 
-            if lng == "":
-                lng = None
+        lat = data.get('latitude')
+        lng = data.get('longitude')
 
-            denuncia = Denuncia(
-                tipo_animal=data.get('tipo_animal'),
-                tipo_risco=data.get('tipo_risco'),
-                descricao=data.get('descricao'),
-                latitude=lat,
-                longitude=lng,
-                endereco=data.get('endereco'),
-                email_contato=data.get('email_contato'),
+        if lat in ["", None]:
+            lat = None
+        else:
+            lat = round(float(lat), 8)
+
+        if lng in ["", None]:
+            lng = None
+        else:
+            lng = round(float(lng), 8)
+
+        denuncia = Denuncia(
+            tipo_animal=data.get('tipo_animal'),
+            tipo_risco=data.get('tipo_risco'),
+            descricao=data.get('descricao'),
+            endereco=data.get('endereco'),
+            latitude=lat,
+            longitude=lng,
+            email_contato=data.get('email_contato'),
+        )
+
+        denuncia.save()
+
+        if imagem:
+            Evidencia.objects.create(
+                denuncia=denuncia,
+                imagem=imagem
             )
 
-            denuncia.save()
-
-            if denuncia.email_contato:
-                enviar_email_protocolo(
-                    denuncia.email_contato,
-                    denuncia.protocolo
-                )
-
-            return JsonResponse({
-                'mensagem': 'Denúncia criada com sucesso',
-                'protocolo': denuncia.protocolo
-            }, status=201)
-
-        except ValidationError as e:
-            return JsonResponse(
-                {'erro': e.messages},
-                status=400
+        if denuncia.email_contato:
+            enviar_email_protocolo(
+                denuncia.email_contato,
+                denuncia.protocolo
             )
 
-        except Exception as e:
-            return JsonResponse(
-                {'erro': str(e)},
-                status=500
-            )
+        return JsonResponse({
+            'mensagem': 'Denúncia criada com sucesso',
+            'protocolo': denuncia.protocolo
+        }, status=201)
 
-    return JsonResponse(
-        {'erro': 'Método não permitido'},
-        status=405
-    )
+    except ValidationError as e:
+        return JsonResponse(
+            {'erro': e.messages},
+            status=400
+        )
+
+    except Exception as e:
+        print("Erro interno:", str(e))
+        return JsonResponse(
+            {'erro': str(e)},
+            status=500
+        )
 
 
 @csrf_exempt
@@ -133,38 +150,42 @@ def atualizar_status_denuncia(request):
 
 @csrf_exempt
 def acompanhar_denuncia(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
 
-            protocolo = data.get('protocolo')
+    try:
+        data = json.loads(request.body)
+        protocolo = data.get('protocolo')
 
-            denuncia = Denuncia.objects.filter(
-                protocolo=protocolo
-            ).first()
+        denuncia = Denuncia.objects.filter(
+            protocolo=protocolo
+        ).first()
 
-            if not denuncia:
-                return JsonResponse(
-                    {'erro': 'Protocolo não encontrado'},
-                    status=404
-                )
-
-            return JsonResponse({
-                'protocolo': denuncia.protocolo,
-                'tipo_animal': denuncia.tipo_animal,
-                'tipo_risco': denuncia.tipo_risco,
-                'descricao': denuncia.descricao,
-                'status': denuncia.status,
-                'endereco': denuncia.endereco,
-            })
-
-        except Exception as e:
+        if not denuncia:
             return JsonResponse(
-                {'erro': str(e)},
-                status=500
+                {'erro': 'Protocolo não encontrado'},
+                status=404
             )
 
-    return JsonResponse(
-        {'erro': 'Método não permitido'},
-        status=405
-    )
+        evidencia = Evidencia.objects.filter(
+            denuncia=denuncia
+        ).first()
+
+        imagem_url = None
+        if evidencia and evidencia.imagem:
+            imagem_url = evidencia.imagem.url
+
+        return JsonResponse({
+            'protocolo': denuncia.protocolo,
+            'tipo_animal': denuncia.tipo_animal,
+            'tipo_risco': denuncia.tipo_risco,
+            'descricao': denuncia.descricao,
+            'status': denuncia.status,
+            'endereco': denuncia.endereco,
+            'latitude': denuncia.latitude,
+            'longitude': denuncia.longitude,
+            'imagem': imagem_url
+        })
+
+    except Exception as e:
+        return JsonResponse({'erro': str(e)}, status=500)

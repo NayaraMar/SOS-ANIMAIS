@@ -8,6 +8,7 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
   );
 
   const [carregando, setCarregando] = useState(false);
+  const [mostrarInfo, setMostrarInfo] = useState(false);
 
   if (!denuncia) return null;
 
@@ -74,7 +75,14 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
           alignItems: 'center'
         }}
       >
-        <img src={logoSos} alt="Logo" width="100" />
+        {denuncia.imagem ? (
+          <img
+            src={`http://localhost:8000${denuncia.imagem}`}
+            alt="Evidência"
+          />
+        ) : (
+          <p>Sem imagem enviada.</p>
+        )}
 
         <button className="btn-outline" onClick={onVoltar}>
           Voltar
@@ -106,7 +114,58 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
           <p><b>Tipo de risco:</b> {denuncia.tipo_risco}</p>
           <p><b>Status:</b> {traduzirStatus(statusAtual)}</p>
           <p><b>Descrição:</b> {denuncia.descricao || 'Não informada'}</p>
-          <p><b>Endereço:</b> {denuncia.endereco || 'Não informado'}</p>
+
+          <button
+            onClick={() => setMostrarInfo(!mostrarInfo)}
+            style={{
+              marginTop: '20px',
+              background: '#6c63ff',
+              color: 'white',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '10px',
+              cursor: 'pointer'
+            }}
+          >
+            {mostrarInfo ? 'Ocultar informações' : 'Mais informações'}
+          </button>
+
+          {mostrarInfo && (
+            <div
+              style={{
+                marginTop: '20px',
+                padding: '20px',
+                background: '#f8f9fa',
+                borderRadius: '12px'
+              }}
+            >
+              <p>
+                <b>Endereço:</b>{" "}
+                {denuncia.endereco
+                  ? denuncia.endereco
+                  : `${denuncia.latitude}, ${denuncia.longitude}`}
+              </p>
+              <div style={{ marginTop: '15px' }}>
+                <b>Imagem:</b>
+                <br />
+
+                {denuncia.imagem ? (
+                  <img
+                    src={denuncia.imagem}
+                    alt="Evidência"
+                    style={{
+                      marginTop: '10px',
+                      width: '100%',
+                      maxWidth: '400px',
+                      borderRadius: '12px'
+                    }}
+                  />
+                ) : (
+                  <p>Sem imagem enviada.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div
             style={{
