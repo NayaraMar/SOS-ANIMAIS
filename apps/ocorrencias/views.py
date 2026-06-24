@@ -42,8 +42,32 @@ def criar_denuncia(request):
         print("POST:", data)
         print("FILES:", request.FILES)
 
+        campos_obrigatorios = {
+            'tipo_animal': 'Tipo do animal',
+            'tipo_risco': 'Tipo da ocorrência',
+            'descricao': 'Descrição',
+            'endereco': 'Endereço',
+        }
+        campos_ausentes = [
+            nome
+            for campo, nome in campos_obrigatorios.items()
+            if not data.get(campo)
+        ]
+
+        if campos_ausentes:
+            return JsonResponse(
+                {
+                    'erro': (
+                        'Preencha os campos obrigatórios: '
+                        + ', '.join(campos_ausentes)
+                    )
+                },
+                status=400
+            )
+
         lat = data.get('latitude')
         lng = data.get('longitude')
+        email_contato = data.get('email_contato') or None
 
         if lat in ["", None]:
             lat = None
@@ -62,7 +86,7 @@ def criar_denuncia(request):
             endereco=data.get('endereco'),
             latitude=lat,
             longitude=lng,
-            email_contato=data.get('email_contato'),
+            email_contato=email_contato,
         )
 
         denuncia.save()

@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
 
 const Denuncia = (props) => {
+  const reconhecimentoDisponivel =
+    typeof window !== 'undefined' &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const leituraDisponivel =
+    typeof window !== 'undefined' && Boolean(window.speechSynthesis);
   const [tipoAnimal, setTipoAnimal] = useState('');
   const [tipoOcorrencia, setTipoOcorrencia] = useState('');
   const [localizacao, setLocalizacao] = useState('');
+  const [emailContato, setEmailContato] = useState('');
   const [descricao, setDescricao] = useState('');
   const [imagem, setImagem] = useState(null);
   const [mensagem, setMensagem] = useState('');
@@ -14,6 +20,15 @@ const Denuncia = (props) => {
   const [longitude, setLongitude] = useState(null);
   const [tiposAnimal, setTiposAnimal] = useState([]);
   const [tiposRisco, setTiposRisco] = useState([]);
+  const [vozSuportada] = useState(reconhecimentoDisponivel);
+  const [ouvindo, setOuvindo] = useState(false);
+  const [textoParcialVoz, setTextoParcialVoz] = useState('');
+  const [statusVoz, setStatusVoz] = useState(
+    reconhecimentoDisponivel
+      ? 'Transcrição por voz disponível.'
+      : 'Seu navegador não oferece transcrição por voz nesta tela.'
+  );
+  const reconhecimentoVozRef = useRef(null);
 
   const inputStyle = {
     padding: '14px 16px',
@@ -25,11 +40,26 @@ const Denuncia = (props) => {
     outline: 'none',
   };
 
-  useEffect(() => {
-    carregarOpcoes();
-  }, []);
+  const campoComAudioStyle = {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    gap: 10,
+    alignItems: 'stretch',
+  };
 
-  const carregarOpcoes = async () => {
+  const botaoAudioStyle = {
+    background: '#4f46e5',
+    color: 'white',
+    padding: '0 14px',
+    border: 'none',
+    borderRadius: 12,
+    cursor: leituraDisponivel ? 'pointer' : 'not-allowed',
+    fontWeight: 700,
+    minWidth: 92,
+    opacity: leituraDisponivel ? 1 : 0.55,
+  };
+
+  async function carregarOpcoes() {
     try {
       const response = await fetch(
         'http://localhost:8000/api/denuncias/opcoes/'
@@ -40,7 +70,85 @@ const Denuncia = (props) => {
     } catch (error) {
       console.error(error);
     }
-  };
+  }
+
+  useEffect(() => {
+    Promise.resolve().then(carregarOpcoes);
+  }, []);
+
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      return;
+    }
+
+    const reconhecimento = new SpeechRecognition();
+    reconhecimento.lang = 'pt-BR';
+    reconhecimento.continuous = true;
+    reconhecimento.interimResults = true;
+
+    reconhecimento.onstart = () => {
+      setOuvindo(true);
+      setStatusVoz('Microfone ativado. Fale a descrição da denúncia.');
+    };
+
+    reconhecimento.onend = () => {
+      setOuvindo(false);
+      setTextoParcialVoz('');
+      setStatusVoz('Transcrição por voz pausada.');
+    };
+
+    reconhecimento.onerror = (evento) => {
+      setOuvindo(false);
+      setTextoParcialVoz('');
+
+      if (evento.error === 'not-allowed') {
+        setStatusVoz(
+          'Permita o acesso ao microfone no navegador para usar a voz.'
+        );
+        return;
+      }
+
+      if (evento.error === 'no-speech') {
+        setStatusVoz('Nenhuma fala foi detectada. Tente novamente.');
+        return;
+      }
+
+      setStatusVoz('Não foi possível transcrever o áudio.');
+    };
+
+    reconhecimento.onresult = (evento) => {
+      let textoFinal = '';
+      let textoParcial = '';
+
+      for (let i = evento.resultIndex; i < evento.results.length; i += 1) {
+        const trecho = evento.results[i][0].transcript;
+
+        if (evento.results[i].isFinal) {
+          textoFinal += trecho;
+        } else {
+          textoParcial += trecho;
+        }
+      }
+
+      if (textoFinal.trim()) {
+        setDescricao((descricaoAtual) => {
+          const separador = descricaoAtual.trim() ? ' ' : '';
+          return `${descricaoAtual}${separador}${textoFinal.trim()}`;
+        });
+      }
+
+      setTextoParcialVoz(textoParcial.trim());
+    };
+
+    reconhecimentoVozRef.current = reconhecimento;
+
+    return () => {
+      reconhecimento.stop();
+    };
+  }, []);
 
   const pegarLocalizacao = () => {
     if (!navigator.geolocation) {
@@ -65,14 +173,69 @@ const Denuncia = (props) => {
     }
   };
 
+  const alternarTranscricaoPorVoz = () => {
+    const reconhecimento = reconhecimentoVozRef.current;
+
+    if (!reconhecimento) {
+      setStatusVoz(
+        'Seu navegador não oferece transcrição por voz nesta tela.'
+      );
+      return;
+    }
+
+    if (ouvindo) {
+      reconhecimento.stop();
+      return;
+    }
+
+    setTextoParcialVoz('');
+    setStatusVoz('Solicitando acesso ao microfone...');
+
+    try {
+      reconhecimento.start();
+    } catch {
+      setStatusVoz('A transcrição por voz já está em andamento.');
+    }
+  };
+
+  const falarInstrucao = (texto) => {
+    if (!leituraDisponivel) {
+      setMensagem(
+        'Seu navegador não oferece leitura em voz alta nesta tela.'
+      );
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const fala = new SpeechSynthesisUtterance(texto);
+
+    fala.lang = 'pt-BR';
+    fala.rate = 0.95;
+    fala.pitch = 1;
+
+    window.speechSynthesis.speak(fala);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (leituraDisponivel) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [leituraDisponivel]);
+
   const resetarFormulario = () => {
     setTipoAnimal('');
     setTipoOcorrencia('');
     setLocalizacao('');
+    setEmailContato('');
     setDescricao('');
     setImagem(null);
     setLatitude(null);
     setLongitude(null);
+    setTextoParcialVoz('');
+    setStatusVoz(vozSuportada ? 'Transcrição por voz disponível.' : '');
 
     const inputFoto = document.getElementById('input-foto');
     if (inputFoto) inputFoto.value = '';
@@ -89,6 +252,7 @@ const Denuncia = (props) => {
     formData.append('tipo_risco', tipoOcorrencia);
     formData.append('descricao', descricao);
     formData.append('endereco', localizacao);
+    formData.append('email_contato', emailContato);
     formData.append('latitude', latitude ?? '');
     formData.append('longitude', longitude ?? '');
 
@@ -192,41 +356,84 @@ const Denuncia = (props) => {
               gap: 18,
             }}
           >
-            <select
-              value={tipoAnimal}
-              onChange={(e) => setTipoAnimal(e.target.value)}
-              style={inputStyle}
-              required
-            >
-              <option value="">Selecione o animal</option>
-              {tiposAnimal.map((animal) => (
-                <option key={animal.valor} value={animal.valor}>
-                  {animal.nome}
-                </option>
-              ))}
-            </select>
+            <div style={campoComAudioStyle}>
+              <select
+                value={tipoAnimal}
+                onChange={(e) => setTipoAnimal(e.target.value)}
+                style={inputStyle}
+                required
+              >
+                <option value="">Selecione o animal</option>
+                {tiposAnimal.map((animal) => (
+                  <option key={animal.valor} value={animal.valor}>
+                    {animal.nome}
+                  </option>
+                ))}
+              </select>
 
-            <select
-              value={tipoOcorrencia}
-              onChange={(e) => setTipoOcorrencia(e.target.value)}
-              style={inputStyle}
-              required
-            >
-              <option value="">Selecione ocorrência</option>
-              {tiposRisco.map((risco) => (
-                <option key={risco.valor} value={risco.valor}>
-                  {risco.nome}
-                </option>
-              ))}
-            </select>
+              <button
+                type="button"
+                onClick={() =>
+                  falarInstrucao('Selecione o tipo de animal.')
+                }
+                disabled={!leituraDisponivel}
+                aria-label="Ouvir instrução do tipo de animal"
+                style={botaoAudioStyle}
+              >
+                Ouvir
+              </button>
+            </div>
 
-            <input
-              type="text"
-              value={localizacao}
-              onChange={(e) => setLocalizacao(e.target.value)}
-              placeholder="Digite o endereço"
-              style={inputStyle}
-            />
+            <div style={campoComAudioStyle}>
+              <select
+                value={tipoOcorrencia}
+                onChange={(e) => setTipoOcorrencia(e.target.value)}
+                style={inputStyle}
+                required
+              >
+                <option value="">Selecione ocorrência</option>
+                {tiposRisco.map((risco) => (
+                  <option key={risco.valor} value={risco.valor}>
+                    {risco.nome}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() =>
+                  falarInstrucao('Selecione o tipo de risco ou ocorrência.')
+                }
+                disabled={!leituraDisponivel}
+                aria-label="Ouvir instrução do tipo de ocorrência"
+                style={botaoAudioStyle}
+              >
+                Ouvir
+              </button>
+            </div>
+
+            <div style={campoComAudioStyle}>
+              <input
+                type="text"
+                value={localizacao}
+                onChange={(e) => setLocalizacao(e.target.value)}
+                placeholder="Digite o endereço"
+                style={inputStyle}
+                required
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  falarInstrucao('Digite o endereço onde a situação está acontecendo.')
+                }
+                disabled={!leituraDisponivel}
+                aria-label="Ouvir instrução do endereço"
+                style={botaoAudioStyle}
+              >
+                Ouvir
+              </button>
+            </div>
 
             <button
               type="button"
@@ -261,24 +468,148 @@ const Denuncia = (props) => {
               </div>
             )}
 
-            <textarea
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Descreva a situação"
-              required
-              style={{
-                ...inputStyle,
-                minHeight: 120,
-                resize: 'none',
-              }}
-            />
+            <div style={campoComAudioStyle}>
+              <input
+                type="email"
+                value={emailContato}
+                onChange={(e) => setEmailContato(e.target.value)}
+                placeholder="Digite seu email para receber o protocolo (opcional)"
+                style={inputStyle}
+              />
 
-            <input
-              id="input-foto"
-              type="file"
-              accept="image/*"
-              onChange={capturarImagem}
-            />
+              <button
+                type="button"
+                onClick={() =>
+                  falarInstrucao('Digite seu email se quiser receber o protocolo da denúncia. Este campo é opcional.')
+                }
+                disabled={!leituraDisponivel}
+                aria-label="Ouvir instrução do email"
+                style={botaoAudioStyle}
+              >
+                Ouvir
+              </button>
+            </div>
+
+            <div>
+              <label
+                htmlFor="descricao-denuncia"
+                style={{
+                  display: 'block',
+                  marginBottom: 8,
+                  fontWeight: 700,
+                  color: '#1e293b',
+                }}
+              >
+                Descrição da situação
+              </label>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  marginBottom: 10,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={alternarTranscricaoPorVoz}
+                  disabled={!vozSuportada}
+                  aria-pressed={ouvindo}
+                  aria-describedby="status-voz-denuncia"
+                  style={{
+                    background: ouvindo ? '#b91c1c' : '#16a34a',
+                    color: 'white',
+                    padding: '12px 16px',
+                    border: 'none',
+                    borderRadius: 12,
+                    cursor: vozSuportada ? 'pointer' : 'not-allowed',
+                    fontWeight: 700,
+                    opacity: vozSuportada ? 1 : 0.55,
+                  }}
+                >
+                  {ouvindo ? 'Parar voz' : 'Preencher por voz'}
+                </button>
+
+                <span
+                  id="status-voz-denuncia"
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    alignSelf: 'center',
+                    color: '#475569',
+                    fontSize: 14,
+                  }}
+                >
+                  {statusVoz}
+                </span>
+              </div>
+
+              {textoParcialVoz && (
+                <div
+                  aria-live="polite"
+                  style={{
+                    background: '#ecfdf5',
+                    border: '1px solid #bbf7d0',
+                    color: '#166534',
+                    padding: 12,
+                    borderRadius: 12,
+                    marginBottom: 10,
+                    fontSize: 14,
+                  }}
+                >
+                  Transcrevendo: {textoParcialVoz}
+                </div>
+              )}
+
+              <div style={campoComAudioStyle}>
+                <textarea
+                  id="descricao-denuncia"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Descreva a situação"
+                  required
+                  style={{
+                    ...inputStyle,
+                    minHeight: 120,
+                    resize: 'none',
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    falarInstrucao('Descreva a situação do animal com o máximo de detalhes possível.')
+                  }
+                  disabled={!leituraDisponivel}
+                  aria-label="Ouvir instrução da descrição"
+                  style={botaoAudioStyle}
+                >
+                  Ouvir
+                </button>
+              </div>
+            </div>
+
+            <div style={campoComAudioStyle}>
+              <input
+                id="input-foto"
+                type="file"
+                accept="image/*"
+                onChange={capturarImagem}
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  falarInstrucao('Envie uma foto do animal ou da situação, se tiver. Este campo é opcional.')
+                }
+                disabled={!leituraDisponivel}
+                aria-label="Ouvir instrução da foto"
+                style={botaoAudioStyle}
+              >
+                Ouvir
+              </button>
+            </div>
 
             {mensagem && (
               <div
