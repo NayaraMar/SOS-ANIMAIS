@@ -36,6 +36,18 @@ cd sos-animais``
 ``bash
 docker-compose up --build``
 
+## Em outro terminal:
+### 4. Criar superusuário (admin)
+``bash
+docker-compose exec web python manage.py createsuperuser``
+
+Preencha:
+
+CPF 
+Nome
+Email
+Senha
+
 ### 3. Acessar o sistema
 ``bash
 Frontend: http://localhost:5173``
