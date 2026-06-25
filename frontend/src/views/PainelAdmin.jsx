@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
 
@@ -33,7 +33,7 @@ const PainelAdmin = (props) => {
       } else {
         setErro('Não foi possível carregar as denúncias.');
       }
-    } catch (err) {
+    } catch {
       setErro('Erro ao conectar com servidor.');
     } finally {
       setCarregando(false);
@@ -41,7 +41,7 @@ const PainelAdmin = (props) => {
   };
 
   useEffect(() => {
-    buscarDenuncias();
+    Promise.resolve().then(buscarDenuncias);
 
     const intervalo = setInterval(() => {
       buscarDenuncias();
@@ -134,6 +134,13 @@ const PainelAdmin = (props) => {
         </div>
 
         <div style={{ display: 'flex', gap: '15px' }}>
+          <button
+            className="btn-outline"
+            onClick={props.onVoltar}
+          >
+            Voltar
+          </button>
+
           {usuarioLogado?.is_superuser && (
             <>
               <button

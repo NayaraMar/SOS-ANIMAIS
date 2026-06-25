@@ -101,19 +101,6 @@ class Denuncia(models.Model):
         default='aberto'
     )
 
-    def clean(self):
-        coordenadas_ok = (
-            self.latitude is not None and
-            self.longitude is not None
-        )
-
-        endereco_ok = bool(self.endereco)
-
-        if not coordenadas_ok and not endereco_ok:
-            raise ValidationError(
-                'Informe localização ou endereço.'
-            )
-
     def gerar_protocolo(self):
         animal_map = {
             'cachorro': 'CA',

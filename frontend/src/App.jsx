@@ -24,6 +24,7 @@ function App() {
       <div className="App">
         <PainelAdmin
           onLogout={() => setTela('home')}
+          onVoltar={() => setTela('login')}
           onIrParaCadastro={() => setTela('cadastro_admin')}
           onIrUsuarios={() => setTela('usuarios')}
           onAnalisar={(denuncia) => {
