@@ -32,10 +32,11 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "python manage.py makemigrations &&
+      sh -c "
+      python manage.py makemigrations &&
       python manage.py migrate &&
-      python manage.py shell -c \"from apps.usuario.models import Usuario; Usuario.objects.filter(cpf='060.070.916-78').exists() or Usuario.objects.create_superuser(cpf='12345678900', nome='Admin', email='admin@admin.com', password='admin123')\" &&
-      python manage.py runserver 0.0.0.0:8000"
+      python manage.py runserver 0.0.0.0:8000
+      "
 
   frontend:
     build: ./frontend
