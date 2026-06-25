@@ -6,6 +6,11 @@ import imgAnimais from '../assets/imgAnimais.png';
 const RecuperarSenha = (props) => {
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+
+  const [etapa, setEtapa] = useState(1);
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
 
@@ -44,13 +49,63 @@ const RecuperarSenha = (props) => {
       const data = await response.json();
 
       if (response.ok) {
-        setMensagem(
-          'Instruções de recuperação enviadas para seu e-mail.'
-        );
+        setMensagem('Código enviado para seu e-mail.');
+        setEtapa(2);
       } else {
         setMensagem(data.error || 'Erro ao recuperar senha');
       }
-    } catch (error) {
+    } catch {
+      setMensagem('Erro ao conectar com servidor');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const redefinirSenha = async (evento) => {
+    evento.preventDefault();
+    setMensagem('');
+
+    if (novaSenha.length < 6) {
+      setMensagem('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    if (novaSenha !== confirmarSenha) {
+      setMensagem('As senhas não coincidem.');
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      const response = await fetch(
+        'http://localhost:8000/api/redefinir-senha/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cpf: cpf.replace(/\D/g, ''),
+            email,
+            codigo,
+            nova_senha: novaSenha,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMensagem('Senha redefinida com sucesso! Redirecionando...');
+
+        setTimeout(() => {
+          props.onVoltar();
+        }, 2000);
+      } else {
+        setMensagem(data.error || 'Erro ao redefinir senha');
+      }
+    } catch {
       setMensagem('Erro ao conectar com servidor');
     } finally {
       setCarregando(false);
@@ -108,107 +163,110 @@ const RecuperarSenha = (props) => {
                 fontSize: '14px',
               }}
             >
-              Informe seu CPF e e-mail cadastrado
+              {etapa === 1
+                ? 'Informe seu CPF e e-mail cadastrado'
+                : 'Digite o código enviado e sua nova senha'}
             </p>
           </div>
 
-          <form
-            onSubmit={recuperarSenha}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  fontSize: '12px',
-                  marginBottom: '5px',
-                  display: 'block',
-                }}
-              >
-                CPF
-              </label>
-
+          {etapa === 1 ? (
+            <form
+              onSubmit={recuperarSenha}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
               <input
                 type="text"
                 value={cpf}
                 onChange={formatarCpf}
-                placeholder="000.000.000-00"
+                placeholder="CPF"
                 required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid #DDD',
-                  fontSize: '14px',
-                }}
+                style={inputStyle}
               />
-            </div>
-
-            <div>
-              <label
-                style={{
-                  fontSize: '12px',
-                  marginBottom: '5px',
-                  display: 'block',
-                }}
-              >
-                E-mail
-              </label>
 
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="exemplo@email.com"
+                placeholder="E-mail"
                 required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid #DDD',
-                  fontSize: '14px',
-                }}
+                style={inputStyle}
               />
-            </div>
 
-            {mensagem && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: mensagem.includes('enviadas')
-                    ? 'green'
-                    : 'red',
-                }}
+              {mensagem && (
+                <Mensagem mensagem={mensagem} />
+              )}
+
+              <button
+                type="submit"
+                disabled={carregando}
+                style={botaoStyle}
               >
-                {mensagem}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={carregando}
+                {carregando
+                  ? 'Enviando...'
+                  : 'Enviar recuperação'}
+              </button>
+            </form>
+          ) : (
+            <form
+              onSubmit={redefinirSenha}
               style={{
-                background: '#333',
-                color: '#fff',
-                padding: '14px',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                marginTop: '10px',
-                opacity: carregando ? 0.7 : 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
               }}
             >
-              {carregando
-                ? 'Enviando...'
-                : 'Enviar recuperação'}
-            </button>
-          </form>
+              <input
+                type="text"
+                value={codigo}
+                onChange={(e) =>
+                  setCodigo(e.target.value)
+                }
+                placeholder="Código de 6 dígitos"
+                required
+                style={inputStyle}
+              />
+
+              <input
+                type="password"
+                value={novaSenha}
+                onChange={(e) =>
+                  setNovaSenha(e.target.value)
+                }
+                placeholder="Nova senha"
+                required
+                style={inputStyle}
+              />
+
+              <input
+                type="password"
+                value={confirmarSenha}
+                onChange={(e) =>
+                  setConfirmarSenha(e.target.value)
+                }
+                placeholder="Confirmar senha"
+                required
+                style={inputStyle}
+              />
+
+              {mensagem && (
+                <Mensagem mensagem={mensagem} />
+              )}
+
+              <button
+                type="submit"
+                disabled={carregando}
+                style={botaoStyle}
+              >
+                {carregando
+                  ? 'Redefinindo...'
+                  : 'Redefinir senha'}
+              </button>
+            </form>
+          )}
         </div>
 
         <img
@@ -248,5 +306,42 @@ const RecuperarSenha = (props) => {
     </div>
   );
 };
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px',
+  borderRadius: '10px',
+  border: '1px solid #DDD',
+  fontSize: '14px',
+};
+
+const botaoStyle = {
+  background: '#333',
+  color: '#fff',
+  padding: '14px',
+  border: 'none',
+  borderRadius: '10px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  marginTop: '10px',
+};
+
+const Mensagem = ({ mensagem }) => (
+  <div
+    style={{
+      textAlign: 'center',
+      fontSize: '13px',
+      fontWeight: '500',
+      color:
+        mensagem.includes('sucesso') ||
+        mensagem.includes('enviado') ||
+        mensagem.includes('Redirecionando')
+          ? 'green'
+          : 'red',
+    }}
+  >
+    {mensagem}
+  </div>
+);
 
 export default RecuperarSenha;

@@ -417,9 +417,13 @@ const Denuncia = (props) => {
                 type="text"
                 value={localizacao}
                 onChange={(e) => setLocalizacao(e.target.value)}
-                placeholder="Digite o endereço"
+                placeholder={
+                  latitude && longitude
+                    ? "Endereço opcional (localização já capturada)"
+                    : "Digite o endereço"
+                }
                 style={inputStyle}
-                required
+                required={!latitude || !longitude}
               />
 
               <button

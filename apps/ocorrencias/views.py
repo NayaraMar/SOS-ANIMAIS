@@ -22,51 +22,62 @@ def opcoes_denuncia(request):
 
 
 def lista_denuncias(request):
-    dados = list(Denuncia.objects.values())
+    dados = []
+
+    for denuncia in Denuncia.objects.all():
+        evidencia = Evidencia.objects.filter(denuncia=denuncia).first()
+
+        imagem_url = None
+        if evidencia and evidencia.imagem:
+            imagem_url = evidencia.imagem.url
+
+        dados.append({
+            'protocolo': denuncia.protocolo,
+            'tipo_animal': denuncia.tipo_animal,
+            'tipo_risco': denuncia.tipo_risco,
+            'descricao': denuncia.descricao,
+            'status': denuncia.status,
+            'endereco': denuncia.endereco,
+            'latitude': denuncia.latitude,
+            'longitude': denuncia.longitude,
+            'imagem': imagem_url
+        })
+
     return JsonResponse(dados, safe=False)
 
 
 @csrf_exempt
 def criar_denuncia(request):
     if request.method != 'POST':
-        return JsonResponse(
-            {'erro': 'Método não permitido'},
-            status=405
-        )
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
 
     try:
-        # AGORA VEM DE FORMDATA
         data = request.POST
         imagem = request.FILES.get('imagem')
 
-        print("POST:", data)
-        print("FILES:", request.FILES)
+        campos_ausentes = []
 
-        campos_obrigatorios = {
-            'tipo_animal': 'Tipo do animal',
-            'tipo_risco': 'Tipo da ocorrência',
-            'descricao': 'Descrição',
-            'endereco': 'Endereço',
-        }
-        campos_ausentes = [
-            nome
-            for campo, nome in campos_obrigatorios.items()
-            if not data.get(campo)
-        ]
+        if not data.get('tipo_animal'):
+            campos_ausentes.append('Tipo do animal')
 
-        if campos_ausentes:
-            return JsonResponse(
-                {
-                    'erro': (
-                        'Preencha os campos obrigatórios: '
-                        + ', '.join(campos_ausentes)
-                    )
-                },
-                status=400
-            )
+        if not data.get('tipo_risco'):
+            campos_ausentes.append('Tipo da ocorrência')
+
+        if not data.get('descricao'):
+            campos_ausentes.append('Descrição')
 
         lat = data.get('latitude')
         lng = data.get('longitude')
+
+        if not data.get('endereco') and (not lat or not lng):
+            campos_ausentes.append('Endereço ou localização')
+
+        if campos_ausentes:
+            return JsonResponse(
+                {'erro': 'Preencha os campos obrigatórios: ' + ', '.join(campos_ausentes)},
+                status=400
+            )
+
         email_contato = data.get('email_contato') or None
 
         if lat in ["", None]:
@@ -92,10 +103,7 @@ def criar_denuncia(request):
         denuncia.save()
 
         if imagem:
-            Evidencia.objects.create(
-                denuncia=denuncia,
-                imagem=imagem
-            )
+            Evidencia.objects.create(denuncia=denuncia, imagem=imagem)
 
         if denuncia.email_contato:
             enviar_email_protocolo(
@@ -109,50 +117,29 @@ def criar_denuncia(request):
         }, status=201)
 
     except ValidationError as e:
-        return JsonResponse(
-            {'erro': e.messages},
-            status=400
-        )
+        return JsonResponse({'erro': e.messages}, status=400)
 
     except Exception as e:
-        print("Erro interno:", str(e))
-        return JsonResponse(
-            {'erro': str(e)},
-            status=500
-        )
+        return JsonResponse({'erro': str(e)}, status=500)
 
 
 @csrf_exempt
 def atualizar_status_denuncia(request):
     if request.method not in ['PUT', 'PATCH']:
-        return JsonResponse(
-            {'erro': 'Método não permitido'},
-            status=405
-        )
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
         protocolo = data.get('protocolo')
         novo_status = data.get('status')
 
         if not protocolo:
-            return JsonResponse(
-                {'erro': 'Protocolo é obrigatório'},
-                status=400
-            )
+            return JsonResponse({'erro': 'Protocolo é obrigatório'}, status=400)
 
         if not novo_status:
-            return JsonResponse(
-                {'erro': 'Status é obrigatório'},
-                status=400
-            )
+            return JsonResponse({'erro': 'Status é obrigatório'}, status=400)
 
-        denuncia = get_object_or_404(
-            Denuncia,
-            protocolo=protocolo
-        )
-
+        denuncia = get_object_or_404(Denuncia, protocolo=protocolo)
         denuncia.status = novo_status
         denuncia.save()
 
@@ -166,49 +153,28 @@ def atualizar_status_denuncia(request):
         })
 
     except Exception as e:
-        return JsonResponse(
-            {'erro': str(e)},
-            status=500
-        )
+        return JsonResponse({'erro': str(e)}, status=500)
 
 
 @csrf_exempt
 def acompanhar_denuncia(request):
     if request.method != 'POST':
-        return JsonResponse(
-            {'erro': 'Método não permitido'},
-            status=405
-        )
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
         protocolo = data.get('protocolo')
 
-        print("PROTOCOLO RECEBIDO:", protocolo)
-
-        denuncia = Denuncia.objects.filter(
-            protocolo=protocolo
-        ).first()
+        denuncia = Denuncia.objects.filter(protocolo=protocolo).first()
 
         if not denuncia:
-            return JsonResponse(
-                {'erro': 'Protocolo não encontrado'},
-                status=404
-            )
+            return JsonResponse({'erro': 'Protocolo não encontrado'}, status=404)
 
-        evidencia = Evidencia.objects.filter(
-            denuncia=denuncia
-        ).first()
-
+        evidencia = Evidencia.objects.filter(denuncia=denuncia).first()
         imagem_url = None
 
         if evidencia and evidencia.imagem:
-            print("ARQUIVO:", evidencia.imagem)
-            imagem_url = request.build_absolute_uri(
-                evidencia.imagem.url
-            )
-        else:
-            print("SEM EVIDENCIA")
+            imagem_url = request.build_absolute_uri(evidencia.imagem.url)
 
         return JsonResponse({
             'protocolo': denuncia.protocolo,
@@ -223,8 +189,4 @@ def acompanhar_denuncia(request):
         })
 
     except Exception as e:
-        print("ERRO:", str(e))
-        return JsonResponse(
-            {'erro': str(e)},
-            status=500
-        )
+        return JsonResponse({'erro': str(e)}, status=500)

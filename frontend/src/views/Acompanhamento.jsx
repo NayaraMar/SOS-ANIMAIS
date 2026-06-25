@@ -120,7 +120,14 @@ const Acompanhamento = (props) => {
             <div style={{ fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p><strong>Animal:</strong> {denuncia.tipo_animal}</p>
               <p><strong>Risco:</strong> {denuncia.tipo_risco}</p>
-              <p><strong>Localização:</strong> {denuncia.endereco}</p>
+              <p>
+                <strong>Localização:</strong>{' '}
+                {denuncia.endereco
+                  ? denuncia.endereco
+                  : denuncia.latitude && denuncia.longitude
+                    ? `${denuncia.latitude}, ${denuncia.longitude}`
+                    : 'Não informada'}
+              </p>
               <p><strong>Descrição:</strong> {denuncia.descricao}</p>
               {denuncia.prioridade && (
                 <p style={{ margin: 0 }}><strong>Prioridade de Atendimento:</strong> {denuncia.prioridade}</p>

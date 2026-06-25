@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import logoSos from '../assets/logoSOS.png'; // Notei que importou mas não usou, pode manter se for usar depois
+import logoSos from '../assets/logoSOS.png';
 import logoOlinda from '../assets/logoOlinda.png';
 
 const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
-  const [statusAtual, setStatusAtual] = useState(denuncia?.status || 'aberto');
+  const [statusAtual, setStatusAtual] = useState(
+    denuncia?.status || 'aberto'
+  );
   const [carregando, setCarregando] = useState(false);
   const [mostrarInfo, setMostrarInfo] = useState(false);
 
   if (!denuncia) return null;
 
-  // Função para garantir que a URL da imagem aponte corretamente para o backend
   const obterUrlImagem = (caminho) => {
     if (!caminho) return null;
-    // Se a string já começar com http, retorna ela mesma
+
     if (caminho.startsWith('http')) return caminho;
-    // Garante que o caminho comece com /
-    const caminhoFormatado = caminho.startsWith('/') ? caminho : `/${caminho}`;
+
+    const caminhoFormatado = caminho.startsWith('/')
+      ? caminho
+      : `/${caminho}`;
+
     return `http://localhost:8000${caminhoFormatado}`;
   };
 
@@ -34,23 +38,27 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
 
   const alterarStatus = async (novoStatus) => {
     setCarregando(true);
+
     try {
-      const response = await fetch('http://localhost:8000/api/denuncias/status/', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          protocolo: denuncia.protocolo,
-          status: novoStatus
-        })
-      });
+      const response = await fetch(
+        'http://localhost:8000/api/denuncias/status/',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            protocolo: denuncia.protocolo,
+            status: novoStatus
+          })
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         setStatusAtual(novoStatus);
-        alert('Status updated com sucesso!');
+        alert('Status atualizado com sucesso!');
       } else {
         alert(data.erro || 'Erro ao atualizar');
       }
@@ -82,23 +90,21 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
           padding: '10px 20px'
         }}
       >
-        {/* Correção do Header utilizando a função de URL */}
-        {urlImagemFinal ? (
-          <img
-            src={urlImagemFinal}
-            alt="Evidência Header"
-            style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
-          />
-        ) : (
-          <p>Sem imagem enviada.</p>
-        )}
+        {/* LOGO FIXA */}
+        <img src={logoSos} alt="SOS Animais" width="130" />
 
         <button className="btn-outline" onClick={onVoltar}>
           Voltar
         </button>
       </header>
 
-      <main style={{ padding: '30px', display: 'flex', justifyContent: 'center' }}>
+      <main
+        style={{
+          padding: '30px',
+          display: 'flex',
+          justifyContent: 'center'
+        }}
+      >
         <div
           style={{
             width: '800px',
@@ -108,7 +114,9 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
             boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
           }}
         >
-          <h2 style={{ marginBottom: '25px' }}>Análise da Denúncia</h2>
+          <h2 style={{ marginBottom: '25px' }}>
+            Análise da Denúncia
+          </h2>
 
           <p><b>Protocolo:</b> {denuncia.protocolo}</p>
           <p><b>Animal:</b> {denuncia.tipo_animal}</p>
@@ -128,7 +136,9 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
               cursor: 'pointer'
             }}
           >
-            {mostrarInfo ? 'Ocultar informações' : 'Mais informações'}
+            {mostrarInfo
+              ? 'Ocultar informações'
+              : 'Mais informações'}
           </button>
 
           {mostrarInfo && (
@@ -141,20 +151,20 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
               }}
             >
               <p>
-                <b>Endereço:</b>{" "}
+                <b>Endereço:</b>{' '}
                 {denuncia.endereco
                   ? denuncia.endereco
                   : `${denuncia.latitude}, ${denuncia.longitude}`}
               </p>
+
               <div style={{ marginTop: '15px' }}>
                 <b>Imagem detalhada:</b>
                 <br />
 
-                {/* Correção do bloco interno para usar a URL completa do backend */}
                 {urlImagemFinal ? (
                   <img
                     src={urlImagemFinal}
-                    alt="Evidência Detalhada"
+                    alt="Evidência"
                     style={{
                       marginTop: '10px',
                       width: '100%',
@@ -169,7 +179,14 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
             </div>
           )}
 
-          <div style={{ marginTop: '35px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              marginTop: '35px',
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}
+          >
             <button
               disabled={carregando}
               onClick={() => alterarStatus('aberto')}
@@ -212,7 +229,15 @@ const AnaliseDenuncia = ({ denuncia, onVoltar }) => {
         </div>
       </main>
 
-      <footer style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', padding: '20px' }}>
+      <footer
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '15px',
+          padding: '20px'
+        }}
+      >
         <span>Secretaria Executiva de Proteção Animal</span>
         <img src={logoOlinda} alt="Olinda" width="90" />
       </footer>

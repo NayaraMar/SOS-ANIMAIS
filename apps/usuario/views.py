@@ -182,7 +182,6 @@ def listar_usuarios(request):
         )
 
     usuarios = Usuario.objects.all()
-
     dados = []
 
     for usuario in usuarios:
@@ -190,14 +189,12 @@ def listar_usuarios(request):
             'id': usuario.id,
             'nome': usuario.nome,
             'cpf': usuario.cpf,
+            'email': usuario.email,  # <-- ADICIONE ISSO
             'is_superuser': usuario.is_superuser,
             'is_staff': usuario.is_staff
         })
 
-    return JsonResponse(
-        dados,
-        safe=False
-    )
+    return JsonResponse(dados, safe=False)
 
 
 @csrf_exempt
@@ -405,7 +402,7 @@ def recuperar_senha(request):
                 f'Seu código de recuperação é: {codigo}\n'
                 f'Este código expira em 10 minutos.'
             ),
-            from_email='seuemail@gmail.com',
+            from_email='EMAIL_HOST_USER',
             recipient_list=[usuario.email],
             fail_silently=False
         )

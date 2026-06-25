@@ -6,6 +6,7 @@ const PainelAdmin = (props) => {
   const [denuncias, setDenuncias] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [sessaoAtiva, setSessaoAtiva] = useState('aberto');
 
   const usuarioLogado = JSON.parse(
     localStorage.getItem('usuario') || 'null'
@@ -41,7 +42,7 @@ const PainelAdmin = (props) => {
   };
 
   useEffect(() => {
-    Promise.resolve().then(buscarDenuncias);
+    buscarDenuncias();
 
     const intervalo = setInterval(() => {
       buscarDenuncias();
@@ -101,6 +102,25 @@ const PainelAdmin = (props) => {
         return {};
     }
   };
+
+  const denunciasAbertas = denuncias.filter(
+    (d) => d.status === 'aberto'
+  );
+
+  const denunciasAndamento = denuncias.filter(
+    (d) => d.status === 'em_andamento'
+  );
+
+  const denunciasFinalizadas = denuncias.filter(
+    (d) => d.status === 'resolvido'
+  );
+
+  const denunciasFiltradas =
+    sessaoAtiva === 'aberto'
+      ? denunciasAbertas
+      : sessaoAtiva === 'em_andamento'
+      ? denunciasAndamento
+      : denunciasFinalizadas;
 
   return (
     <div
@@ -197,13 +217,77 @@ const PainelAdmin = (props) => {
       >
         <h2>Ocorrências Registradas</h2>
 
-        {carregando && (
-          <p>Carregando denúncias...</p>
-        )}
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '25px',
+            position: 'sticky',
+            top: 0,
+            background: '#f8f8f8',
+            padding: '15px 0',
+            zIndex: 10
+          }}
+        >
+          <button
+            onClick={() => setSessaoAtiva('aberto')}
+            style={{
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              background:
+                sessaoAtiva === 'aberto' ? '#dc3545' : '#eee',
+              color:
+                sessaoAtiva === 'aberto' ? 'white' : '#333',
+              fontWeight: 'bold'
+            }}
+          >
+            Em Aberto ({denunciasAbertas.length})
+          </button>
 
-        {erro && (
-          <p style={{ color: 'red' }}>{erro}</p>
-        )}
+          <button
+            onClick={() => setSessaoAtiva('em_andamento')}
+            style={{
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              background:
+                sessaoAtiva === 'em_andamento'
+                  ? '#ffc107'
+                  : '#eee',
+              color: '#333',
+              fontWeight: 'bold'
+            }}
+          >
+            Em Atendimento ({denunciasAndamento.length})
+          </button>
+
+          <button
+            onClick={() => setSessaoAtiva('resolvido')}
+            style={{
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              background:
+                sessaoAtiva === 'resolvido'
+                  ? '#28a745'
+                  : '#eee',
+              color:
+                sessaoAtiva === 'resolvido'
+                  ? 'white'
+                  : '#333',
+              fontWeight: 'bold'
+            }}
+          >
+            Finalizadas ({denunciasFinalizadas.length})
+          </button>
+        </div>
+
+        {carregando && <p>Carregando denúncias...</p>}
+        {erro && <p style={{ color: 'red' }}>{erro}</p>}
 
         {!carregando && !erro && (
           <div
@@ -231,15 +315,15 @@ const PainelAdmin = (props) => {
               </thead>
 
               <tbody>
-                {denuncias.length === 0 ? (
+                {denunciasFiltradas.length === 0 ? (
                   <tr>
                     <td colSpan="5" style={{ padding: 20 }}>
                       Nenhuma denúncia.
                     </td>
                   </tr>
                 ) : (
-                  denuncias.map((d) => (
-                    <tr key={d.id}>
+                  denunciasFiltradas.map((d) => (
+                    <tr key={d.protocolo}>
                       <td style={{ padding: 15 }}>
                         {d.protocolo}
                       </td>
@@ -260,9 +344,7 @@ const PainelAdmin = (props) => {
 
                       <td style={{ padding: 15 }}>
                         <button
-                          onClick={() =>
-                            props.onAnalisar(d)
-                          }
+                          onClick={() => props.onAnalisar(d)}
                           style={{
                             background: '#333',
                             color: 'white',
