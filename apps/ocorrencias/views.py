@@ -151,11 +151,16 @@ def atualizar_status_denuncia(request):
 @csrf_exempt
 def acompanhar_denuncia(request):
     if request.method != 'POST':
-        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+        return JsonResponse(
+            {'erro': 'Método não permitido'},
+            status=405
+        )
 
     try:
         data = json.loads(request.body)
         protocolo = data.get('protocolo')
+
+        print("PROTOCOLO RECEBIDO:", protocolo)
 
         denuncia = Denuncia.objects.filter(
             protocolo=protocolo
@@ -172,8 +177,14 @@ def acompanhar_denuncia(request):
         ).first()
 
         imagem_url = None
+
         if evidencia and evidencia.imagem:
-            imagem_url = evidencia.imagem.url
+            print("ARQUIVO:", evidencia.imagem)
+            imagem_url = request.build_absolute_uri(
+                evidencia.imagem.url
+            )
+        else:
+            print("SEM EVIDENCIA")
 
         return JsonResponse({
             'protocolo': denuncia.protocolo,
@@ -188,4 +199,8 @@ def acompanhar_denuncia(request):
         })
 
     except Exception as e:
-        return JsonResponse({'erro': str(e)}, status=500)
+        print("ERRO:", str(e))
+        return JsonResponse(
+            {'erro': str(e)},
+            status=500
+        )
